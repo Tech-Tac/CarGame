@@ -5,7 +5,7 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 const carImage = new Image();
-carImage.src = "./car.png";
+carImage.src = "car.png";
 
 const PI = Math.PI;
 const TPI = PI * 2;
