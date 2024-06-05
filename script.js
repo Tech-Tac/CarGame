@@ -27,7 +27,8 @@ const snapKeys = () => {
 };
 
 const resetKeys = () => {
-	for (let i = 0; i < keys.length; i++) keys[i] = false;
+	keys = [];
+	prevKeys = [];
 };
 
 const power = 0.1;
@@ -80,16 +81,16 @@ const draw = () => {
 
 	if (keyDown("ArrowLeft")) {
 		if (car.torque > -1) {
-			car.torque -= power;
+			car.torque += power;
 		} else car.torque = -1;
 	}
 	if (keyDown("ArrowRight")) {
 		if (car.torque < 1) {
-			car.torque += power;
+			car.torque -= power;
 		} else car.torque = 1;
 	}
 
-	car.rotation += car.torque * Math.abs(car.velocity) * car.handling * deltaTime;
+	car.rotation += car.torque * car.velocity * car.handling * deltaTime;
 	if (car.rotation >= TPI) {
 		car.rotation = car.rotation % TPI;
 	} else if (car.rotation < 0) {
