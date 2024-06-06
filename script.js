@@ -48,11 +48,13 @@ let car = {
 
 let trail = [];
 
+let paused = false;
 let lastTimestamp = 0;
 const draw = () => {
 	requestAnimationFrame(draw);
 	const timestamp = performance.now();
 	const frameTime = timestamp - lastTimestamp;
+	if (paused) return;
 	lastTimestamp = timestamp;
 	const deltaTime = frameTime / targetFrameTime;
 
@@ -90,7 +92,7 @@ const draw = () => {
 		} else car.torque = 1;
 	}
 
-	car.rotation += car.torque * car.velocity * car.handling * deltaTime;
+	car.rotation += car.torque * car.handling * car.velocity * deltaTime;
 	if (car.rotation >= TPI) {
 		car.rotation = car.rotation % TPI;
 	} else if (car.rotation < 0) {
@@ -109,10 +111,9 @@ const draw = () => {
 		car.y + changeY - margin <= -canvas.height / 2
 	) {
 		car.velocity *= -1;
+		changeX *= -1;
+		changeY *= -1;
 	}
-
-	changeX = Math.cos(car.rotation + HPI) * car.velocity * car.baseSpeed * deltaTime;
-	changeY = Math.sin(car.rotation + HPI) * car.velocity * car.baseSpeed * deltaTime;
 
 	car.x += changeX;
 	car.y += changeY;
@@ -178,7 +179,14 @@ document.addEventListener("keyup", (e) => {
 	keys[e.code] = false;
 });
 
-window.addEventListener("blur", resetKeys);
+window.addEventListener("blur", () => {
+	resetKeys();
+	paused = true;
+});
+window.addEventListener("focus", () => {
+	lastTimestamp = performance.now();
+	paused = false;
+});
 
 window.addEventListener("load", () => {
 	resize();
