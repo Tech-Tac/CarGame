@@ -10,6 +10,7 @@ carImage.src = "car.png";
 const PI = Math.PI;
 const TPI = PI * 2;
 const HPI = PI / 2;
+const QPI = PI / 4;
 
 const resolution = 192;
 const targetFrameRate = 60;
@@ -71,41 +72,41 @@ const draw = () => {
 
 	if (keyDown("ArrowUp")) {
 		if (car.velocity > -1) {
-			car.velocity -= power;
+			car.velocity -= power * deltaTime;
 		} else car.velocity = -1;
 	}
 	if (keyDown("ArrowDown")) {
 		if (car.velocity < 1) {
-			car.velocity += power;
+			car.velocity += power * deltaTime;
 		} else car.velocity = 1;
 	}
 
 	if (keyDown("Space")) {
-		car.velocity *= 0.75;
+		car.velocity *= 0.75 * deltaTime;
 	}
 
-	if (keyDown("ArrowLeft")) {
-		if (car.torque > -1) {
-			car.torque += power;
-		} else car.torque = -1;
-	}
 	if (keyDown("ArrowRight")) {
 		if (car.torque < 1) {
-			car.torque -= power;
+			car.torque -= power * deltaTime;
 		} else car.torque = 1;
 	}
+	if (keyDown("ArrowLeft")) {
+		if (car.torque > -1) {
+			car.torque += power * deltaTime;
+		} else car.torque = -1;
+	}
 
-	car.rotation += car.torque * car.handling * car.velocity * deltaTime;
+	car.rotation += car.torque * car.handling * car.velocity;
 	if (car.rotation >= TPI) {
 		car.rotation = car.rotation % TPI;
 	} else if (car.rotation < 0) {
 		car.rotation = TPI - (car.rotation % TPI);
 	}
 
-	const margin = car.height / 2;
+	const margin = (car.height + car.width) / 4;
 
-	let changeX = Math.cos(car.rotation + HPI) * car.velocity * car.baseSpeed * deltaTime;
-	let changeY = Math.sin(car.rotation + HPI) * car.velocity * car.baseSpeed * deltaTime;
+	let changeX = Math.cos(car.rotation + HPI) * car.velocity * car.baseSpeed;
+	let changeY = Math.sin(car.rotation + HPI) * car.velocity * car.baseSpeed;
 
 	if (
 		car.x + changeX + margin >= canvas.width / 2 ||
