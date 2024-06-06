@@ -48,6 +48,9 @@ let car = {
 
 let trail = [];
 
+let firstInput = false;
+let hintOpacity = 1;
+
 let paused = false;
 let lastTimestamp = 0;
 const draw = () => {
@@ -127,6 +130,10 @@ const draw = () => {
 	car.velocity *= 1 - friction;
 	car.torque *= 1 - friction;
 
+	if (firstInput && hintOpacity) {
+		hintOpacity *= 0.9;
+	}
+
 	// Drawing logic here
 	ctx.save();
 	ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -156,6 +163,22 @@ const draw = () => {
 
 	ctx.restore();
 
+	// Hint
+
+	if (hintOpacity) {
+		ctx.save();
+		ctx.translate(canvas.width / 2, canvas.height / 2);
+		ctx.globalAlpha = hintOpacity;
+
+		ctx.font = "10px monospace";
+		ctx.fillStyle = "#fff";
+		ctx.textAlign = "center";
+		ctx.textBaseline = "top";
+		ctx.fillText("Use arrow keys to drive.", 0, car.height + 16);
+
+		ctx.restore();
+	}
+
 	// End of cycle logic
 	snapKeys();
 };
@@ -173,6 +196,7 @@ const resize = () => {
 };
 
 document.addEventListener("keydown", (e) => {
+	firstInput = true;
 	keys[e.code] = true;
 });
 document.addEventListener("keyup", (e) => {
