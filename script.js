@@ -32,19 +32,21 @@ const resetKeys = () => {
 	prevKeys = [];
 };
 
-const power = 0.1;
-const friction = 0.075;
-
 let car = {
 	x: 0,
 	y: 0,
 	width: 16,
 	height: 24,
 	rotation: 0,
-	baseSpeed: 2,
 	velocity: 0,
-	handling: 0.05,
-	torque: 0,
+	maxSpeed: 2.5,
+	movementPower: 0.075,
+	movementFriction: 0.025,
+	steeringAngle: 0,
+	turnSensitivty: 0.15,
+	rotationPower: 0.05,
+	rotationFriction: 0.1,
+	bounce: 0.75,
 };
 
 let trail = [];
@@ -71,42 +73,40 @@ const draw = () => {
 	// Update logic here
 
 	if (keyDown("ArrowUp")) {
-		if (car.velocity > -1) {
-			car.velocity -= power * deltaTime;
-		} else car.velocity = -1;
+		car.velocity -= car.movementPower;
 	}
+	if (car.velocity < -car.maxSpeed) car.velocity = -car.maxSpeed;
+
 	if (keyDown("ArrowDown")) {
-		if (car.velocity < 1) {
-			car.velocity += power * deltaTime;
-		} else car.velocity = 1;
+		car.velocity += car.movementPower;
 	}
+	if (car.velocity > car.maxSpeed) car.velocity = car.maxSpeed;
 
 	if (keyDown("Space")) {
-		car.velocity *= 0.75 * deltaTime;
+		car.velocity *= 0.85;
 	}
 
 	if (keyDown("ArrowRight")) {
-		if (car.torque < 1) {
-			car.torque -= power * deltaTime;
-		} else car.torque = 1;
+		car.steeringAngle += car.rotationPower;
 	}
-	if (keyDown("ArrowLeft")) {
-		if (car.torque > -1) {
-			car.torque += power * deltaTime;
-		} else car.torque = -1;
-	}
+	if (car.steeringAngle > 1) car.steeringAngle = 1;
 
-	car.rotation += car.torque * car.handling * car.velocity;
+	if (keyDown("ArrowLeft")) {
+		car.steeringAngle -= car.rotationPower;
+	}
+	if (car.steeringAngle < -1) car.steeringAngle = -1;
+
+	car.rotation += car.steeringAngle * car.turnSensitivty * -(car.velocity / car.maxSpeed) * deltaTime;
 	if (car.rotation >= TPI) {
 		car.rotation = car.rotation % TPI;
 	} else if (car.rotation < 0) {
 		car.rotation = TPI - (car.rotation % TPI);
 	}
 
-	const margin = (car.height + car.width) / 4;
+	const margin = car.height / 2;
 
-	let changeX = Math.cos(car.rotation + HPI) * car.velocity * car.baseSpeed;
-	let changeY = Math.sin(car.rotation + HPI) * car.velocity * car.baseSpeed;
+	let changeX = Math.cos(car.rotation + HPI) * car.velocity;
+	let changeY = Math.sin(car.rotation + HPI) * car.velocity;
 
 	if (
 		car.x + changeX + margin >= canvas.width / 2 ||
@@ -114,25 +114,15 @@ const draw = () => {
 		car.y + changeY + margin >= canvas.height / 2 ||
 		car.y + changeY - margin <= -canvas.height / 2
 	) {
-		car.velocity *= -1;
-		changeX *= -1;
-		changeY *= -1;
-	}
-
-	car.x += changeX;
-	car.y += changeY;
-
-	trail = [[car.x, car.y], ...trail];
-
-	if (trail.length > 128 / deltaTime) {
-		trail.pop();
-	}
-
-	car.velocity *= 1 - friction;
-	car.torque *= 1 - friction;
-
-	if (firstInput && hintOpacity) {
-		hintOpacity *= 0.9;
+		if (Math.abs(car.velocity) > 0.25) {
+			car.velocity *= -car.bounce;
+			changeX *= -car.bounce;
+			changeY *= -car.bounce;
+		} else {
+			velocity = 0;
+			changeX = 0;
+			changeY = 0;
+		}
 	}
 
 	// Drawing logic here
@@ -164,6 +154,42 @@ const draw = () => {
 
 	ctx.restore();
 
+	// Keys
+
+	if (keyDown("ArrowUp")) ctx.fillStyle = "#fff";
+	else ctx.fillStyle = "#888";
+	ctx.fillRect(20, 2, 16, 16);
+
+	if (keyDown("ArrowLeft")) ctx.fillStyle = "#fff";
+	else ctx.fillStyle = "#888";
+	ctx.fillRect(2, 20, 16, 16);
+
+	if (keyDown("ArrowDown")) ctx.fillStyle = "#fff";
+	else ctx.fillStyle = "#888";
+	ctx.fillRect(20, 20, 16, 16);
+
+	if (keyDown("ArrowRight")) ctx.fillStyle = "#fff";
+	else ctx.fillStyle = "#888";
+	ctx.fillRect(38, 20, 16, 16);
+
+	if (keyDown("Space")) ctx.fillStyle = "#fff";
+	else ctx.fillStyle = "#888";
+	ctx.fillRect(2, 38, 52, 16);
+
+	// Gauges
+
+	const end = canvas.width;
+
+	ctx.fillStyle = "#888";
+	ctx.fillRect(end - 34, 2, 32, 8);
+	ctx.fillStyle = "#fff";
+	ctx.fillRect(end - 34, 2, (Math.abs(car.velocity) / car.maxSpeed) * 32, 8);
+
+	ctx.fillStyle = "#888";
+	ctx.fillRect(end - 34, 12, 32, 8);
+	ctx.fillStyle = "#fff";
+	ctx.fillRect(end - 18, 12, car.steeringAngle * 32, 8);
+
 	// Hint
 
 	if (hintOpacity) {
@@ -181,6 +207,23 @@ const draw = () => {
 	}
 
 	// End of cycle logic
+
+	car.x += changeX * deltaTime;
+	car.y += changeY * deltaTime;
+
+	trail = [[car.x, car.y], ...trail];
+
+	if (trail.length > 128 / deltaTime) {
+		trail.pop();
+	}
+
+	car.velocity -= car.movementFriction * car.velocity;
+	car.steeringAngle -= car.rotationFriction * car.steeringAngle;
+
+	if (firstInput && hintOpacity) {
+		hintOpacity *= 0.9;
+	}
+
 	snapKeys();
 };
 
@@ -196,11 +239,11 @@ const resize = () => {
 	}
 };
 
-document.addEventListener("keydown", (e) => {
+window.addEventListener("keydown", (e) => {
 	firstInput = true;
 	keys[e.code] = true;
 });
-document.addEventListener("keyup", (e) => {
+window.addEventListener("keyup", (e) => {
 	keys[e.code] = false;
 });
 
