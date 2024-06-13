@@ -66,7 +66,6 @@ const draw = () => {
 
 	ctx.imageSmoothingQuality = "low";
 	ctx.imageSmoothingEnabled = false;
-	//ctx.clearRect(0, 0, canvas.width, canvas.height);
 	ctx.fillStyle = "#0004";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -228,8 +227,6 @@ const draw = () => {
 };
 
 const resize = () => {
-	/* canvas.width = innerWidth;
-	canvas.height = innerHeight; */
 	if (innerWidth <= innerHeight) {
 		canvas.width = resolution;
 		canvas.height = innerHeight / (innerWidth / resolution);
