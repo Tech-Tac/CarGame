@@ -19,17 +19,45 @@ const targetFrameTime = 1000 / targetFrameRate;
 let keys = [];
 let prevKeys = [];
 
-const keyDown = (key) => keys[key] ?? false;
-const keyPressed = (key) => prevKeys[key] ?? false < keys[key] ?? false;
-const keyReleased = (key) => prevKeys[key] ?? false > keys[key] ?? false;
-
-const snapKeys = () => {
-	prevKeys = [...keys];
+let axes = {
+	drive: 0,
+	steer: 0,
 };
 
-const resetKeys = () => {
+let axesKeys = {
+	drive: ["ArrowUp", "ArrowDown"],
+	steer: ["ArrowLeft", "ArrowRight"],
+};
+
+const keyDown = (key) => keys[key] ?? false;
+const keyPressed = (key) => !prevKeys[key] && keys[key];
+const keyReleased = (key) => prevKeys[key] && !keys[key];
+
+const snapKeys = () => {
+	for (const key in keys) {
+		prevKeys[key] = keys[key];
+	}
+};
+
+const resetInputs = () => {
 	keys = [];
 	prevKeys = [];
+	for (const axis in axes) {
+		if (Object.hasOwnProperty.call(axes, axis)) {
+			axes[axis] = 0;
+		}
+	}
+};
+
+const updateAxes = () => {
+	for (const axis in axes) {
+		if (Object.hasOwnProperty.call(axes, axis)) {
+			// do not
+			if (!hasTouch) axes[axis] = keyDown(axesKeys[axis][1]) - keyDown(axesKeys[axis][0]);
+			if (axes[axis] > 1) axes[axis] = 1;
+			else if (axes[axis] < -1) axes[axis] = -1;
+		}
+	}
 };
 
 let car = {
@@ -40,8 +68,8 @@ let car = {
 	rotation: 0,
 	velocity: 0,
 	maxSpeed: 2.5,
-	movementPower: 0.075,
-	movementFriction: 0.025,
+	movementPower: 0.05,
+	movementFriction: 0.02,
 	steeringAngle: 0,
 	turnSensitivty: 0.15,
 	rotationPower: 0.05,
@@ -52,55 +80,54 @@ let car = {
 let trail = [];
 
 let firstInput = false;
+let hasTouch = false;
 let hintOpacity = 1;
+let showKeys = false;
 
 let paused = false;
 let lastTimestamp = 0;
-const draw = () => {
-	requestAnimationFrame(draw);
+const update = () => {
 	const timestamp = performance.now();
 	const frameTime = timestamp - lastTimestamp;
 	if (paused) return;
 	lastTimestamp = timestamp;
 	const deltaTime = frameTime / targetFrameTime;
 
-	ctx.imageSmoothingQuality = "low";
-	ctx.imageSmoothingEnabled = false;
-	ctx.fillStyle = "#0004";
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	updateAxes();
 
 	// Update logic here
+	// Before logic
 
-	if (keyDown("ArrowUp")) {
-		car.velocity -= car.movementPower;
-	}
-	if (car.velocity < -car.maxSpeed) car.velocity = -car.maxSpeed;
+	car.velocity -= car.movementFriction * car.velocity;
+	car.steeringAngle -= car.rotationFriction * car.steeringAngle;
 
-	if (keyDown("ArrowDown")) {
-		car.velocity += car.movementPower;
+	if (trail.length > 128 / deltaTime) {
+		trail.pop();
 	}
-	if (car.velocity > car.maxSpeed) car.velocity = car.maxSpeed;
+
+	if (firstInput && hintOpacity) {
+		hintOpacity *= 0.9;
+	}
+
+	// Main logic
+
+	if (axes.drive && Math.abs(car.velocity) < car.maxSpeed) {
+		car.velocity += car.movementPower * axes.drive;
+	}
 
 	if (keyDown("Space")) {
 		car.velocity *= 0.85;
 	}
 
-	if (keyDown("ArrowRight")) {
-		car.steeringAngle += car.rotationPower;
+	if (axes.steer) {
+		car.steeringAngle += car.rotationPower * axes.steer;
 	}
 	if (car.steeringAngle > 1) car.steeringAngle = 1;
-
-	if (keyDown("ArrowLeft")) {
-		car.steeringAngle -= car.rotationPower;
-	}
-	if (car.steeringAngle < -1) car.steeringAngle = -1;
+	else if (car.steeringAngle < -1) car.steeringAngle = -1;
 
 	car.rotation += car.steeringAngle * car.turnSensitivty * -(car.velocity / car.maxSpeed) * deltaTime;
-	if (car.rotation >= TPI) {
-		car.rotation = car.rotation % TPI;
-	} else if (car.rotation < 0) {
-		car.rotation = TPI - (car.rotation % TPI);
-	}
+	if (car.rotation >= TPI) car.rotation %= TPI;
+	else if (car.rotation < 0) car.rotation = TPI - (Math.abs(car.rotation) % TPI);
 
 	const margin = car.height / 2;
 
@@ -124,7 +151,32 @@ const draw = () => {
 		}
 	}
 
+	if (keyPressed("KeyD") && keyDown("Shift")) {
+		showKeys = !showKeys;
+	}
+
+	car.x += changeX * deltaTime;
+	car.y += changeY * deltaTime;
+
+	trail = [[car.x, car.y], ...trail];
+
+	if (car.rotation >= TPI || car.rotation < 0) console.log(car.rotation % TPI);
+
+	snapKeys();
+};
+
+const draw = () => {
+	requestAnimationFrame(draw);
+
+	ctx.imageSmoothingQuality = "low";
+	ctx.imageSmoothingEnabled = false;
+	ctx.fillStyle = "#0004";
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+	update();
+
 	// Drawing logic here
+
 	ctx.save();
 	ctx.translate(canvas.width / 2, canvas.height / 2);
 
@@ -155,25 +207,27 @@ const draw = () => {
 
 	// Keys
 
-	if (keyDown("ArrowUp")) ctx.fillStyle = "#fff";
-	else ctx.fillStyle = "#888";
-	ctx.fillRect(20, 2, 16, 16);
+	if (showKeys) {
+		if (keyDown("ArrowUp")) ctx.fillStyle = "#fff";
+		else ctx.fillStyle = "#888";
+		ctx.fillRect(20, 2, 16, 16);
 
-	if (keyDown("ArrowLeft")) ctx.fillStyle = "#fff";
-	else ctx.fillStyle = "#888";
-	ctx.fillRect(2, 20, 16, 16);
+		if (keyDown("ArrowLeft")) ctx.fillStyle = "#fff";
+		else ctx.fillStyle = "#888";
+		ctx.fillRect(2, 20, 16, 16);
 
-	if (keyDown("ArrowDown")) ctx.fillStyle = "#fff";
-	else ctx.fillStyle = "#888";
-	ctx.fillRect(20, 20, 16, 16);
+		if (keyDown("ArrowDown")) ctx.fillStyle = "#fff";
+		else ctx.fillStyle = "#888";
+		ctx.fillRect(20, 20, 16, 16);
 
-	if (keyDown("ArrowRight")) ctx.fillStyle = "#fff";
-	else ctx.fillStyle = "#888";
-	ctx.fillRect(38, 20, 16, 16);
+		if (keyDown("ArrowRight")) ctx.fillStyle = "#fff";
+		else ctx.fillStyle = "#888";
+		ctx.fillRect(38, 20, 16, 16);
 
-	if (keyDown("Space")) ctx.fillStyle = "#fff";
-	else ctx.fillStyle = "#888";
-	ctx.fillRect(2, 38, 52, 16);
+		if (keyDown("Space")) ctx.fillStyle = "#fff";
+		else ctx.fillStyle = "#888";
+		ctx.fillRect(2, 38, 52, 16);
+	}
 
 	// Gauges
 
@@ -182,12 +236,12 @@ const draw = () => {
 	ctx.fillStyle = "#888";
 	ctx.fillRect(end - 34, 2, 32, 8);
 	ctx.fillStyle = "#fff";
-	ctx.fillRect(end - 34, 2, (Math.abs(car.velocity) / car.maxSpeed) * 32, 8);
+	ctx.fillRect(end - 34, 2, Math.min(Math.abs(car.velocity) / car.maxSpeed, 1) * 32, 8);
 
 	ctx.fillStyle = "#888";
 	ctx.fillRect(end - 34, 12, 32, 8);
 	ctx.fillStyle = "#fff";
-	ctx.fillRect(end - 18, 12, car.steeringAngle * 32, 8);
+	ctx.fillRect(end - 18, 12, Math.min(car.steeringAngle, 1) * 32, 8);
 
 	// Hint
 
@@ -200,30 +254,12 @@ const draw = () => {
 		ctx.fillStyle = "#fff";
 		ctx.textAlign = "center";
 		ctx.textBaseline = "top";
-		ctx.fillText("Use arrow keys to drive.", 0, car.height + 16);
+		ctx.fillText(hasTouch ? "Swipe to drive." : "Use arrow keys to drive.", 0, car.height + 16);
 
 		ctx.restore();
 	}
 
 	// End of cycle logic
-
-	car.x += changeX * deltaTime;
-	car.y += changeY * deltaTime;
-
-	trail = [[car.x, car.y], ...trail];
-
-	if (trail.length > 128 / deltaTime) {
-		trail.pop();
-	}
-
-	car.velocity -= car.movementFriction * car.velocity;
-	car.steeringAngle -= car.rotationFriction * car.steeringAngle;
-
-	if (firstInput && hintOpacity) {
-		hintOpacity *= 0.9;
-	}
-
-	snapKeys();
 };
 
 const resize = () => {
@@ -238,14 +274,31 @@ const resize = () => {
 
 window.addEventListener("keydown", (e) => {
 	firstInput = true;
+	keys[e.key] = true;
 	keys[e.code] = true;
 });
 window.addEventListener("keyup", (e) => {
+	keys[e.key] = false;
 	keys[e.code] = false;
 });
 
+let lastPos = [0, 0];
+window.addEventListener("touchstart", (e) => {
+	firstInput = true;
+	lastPos = [e.changedTouches[0].clientX, e.changedTouches[0].clientY];
+});
+window.addEventListener("touchmove", (e) => {
+	axes.drive += (e.changedTouches[0].clientY - lastPos[1]) / 100;
+	axes.steer += (e.changedTouches[0].clientX - lastPos[0]) / 100;
+	lastPos = [e.changedTouches[0].clientX, e.changedTouches[0].clientY];
+});
+window.addEventListener("touchend", (e) => {
+	axes.drive = 0;
+	axes.steer = 0;
+});
+
 window.addEventListener("blur", () => {
-	resetKeys();
+	resetInputs();
 	paused = true;
 });
 window.addEventListener("focus", () => {
@@ -254,6 +307,9 @@ window.addEventListener("focus", () => {
 });
 
 window.addEventListener("load", () => {
+	if (navigator.maxTouchPoints) {
+		hasTouch = true; // i give up
+	}
 	resize();
 	draw();
 });
