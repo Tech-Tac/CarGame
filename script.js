@@ -25,8 +25,8 @@ let axes = {
 };
 
 let axesKeys = {
-  drive: ["ArrowUp", "ArrowDown"],
-  steer: ["ArrowLeft", "ArrowRight"],
+  drive: ["KeyW", "KeyS"],
+  steer: ["KeyA", "KeyD"],
 };
 
 const keyDown = (key) => keys[key] ?? false;
@@ -210,19 +210,19 @@ const draw = () => {
   // Keys
 
   if (showKeys) {
-    if (keyDown("ArrowUp")) ctx.fillStyle = "#fff";
+    if (keyDown("KeyW")) ctx.fillStyle = "#fff";
     else ctx.fillStyle = "#888";
     ctx.fillRect(20, 2, 16, 16);
 
-    if (keyDown("ArrowLeft")) ctx.fillStyle = "#fff";
+    if (keyDown("KeyA")) ctx.fillStyle = "#fff";
     else ctx.fillStyle = "#888";
     ctx.fillRect(2, 20, 16, 16);
 
-    if (keyDown("ArrowDown")) ctx.fillStyle = "#fff";
+    if (keyDown("KeyS")) ctx.fillStyle = "#fff";
     else ctx.fillStyle = "#888";
     ctx.fillRect(20, 20, 16, 16);
 
-    if (keyDown("ArrowRight")) ctx.fillStyle = "#fff";
+    if (keyDown("KeyD")) ctx.fillStyle = "#fff";
     else ctx.fillStyle = "#888";
     ctx.fillRect(38, 20, 16, 16);
 
@@ -256,7 +256,7 @@ const draw = () => {
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText(hasTouch ? "Swipe to drive." : "Use arrow keys to drive.", 0, car.height + 16);
+    ctx.fillText(hasTouch ? "Swipe to drive." : "Use WASD to drive.", 0, car.height + 16);
 
     ctx.restore();
   }
