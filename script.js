@@ -71,7 +71,7 @@ let car = {
   movementPower: 0.05,
   movementFriction: 0.02,
   steeringAngle: 0,
-  turnSensitivty: 0.15,
+  turnSensitivity: 0.15,
   rotationPower: 0.05,
   rotationFriction: 0.1,
   bounce: 0.75,
@@ -125,7 +125,7 @@ const update = () => {
   if (car.steeringAngle > 1) car.steeringAngle = 1;
   else if (car.steeringAngle < -1) car.steeringAngle = -1;
 
-  car.rotation += car.steeringAngle * car.turnSensitivty * -(car.velocity / car.maxSpeed) * deltaTime;
+  car.rotation += car.steeringAngle * car.turnSensitivity * -(car.velocity / car.maxSpeed) * deltaTime;
   if (car.rotation >= TPI) car.rotation %= TPI;
   else if (car.rotation < 0) car.rotation = TPI - (Math.abs(car.rotation) % TPI);
 
